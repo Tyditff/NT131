@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parking Admin Console</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero panel">
+        <div class="hero-copy">
+          <p class="eyebrow">Resident intake</p>
+          <h1>Parking admin console</h1>
+          <p class="hero-text">
+            Login once, then manage residents, vehicles, and RFID cards from one
+            place.
+          </p>
+        </div>
+
+        <div class="hero-actions">
+          <label class="field">
+            <span>API base</span>
+            <input
+              id="api-base"
+              type="text"
+              placeholder="http://localhost:5000/api/v1"
+            />
+          </label>
+
+          <div class="button-row">
+            <button id="save-api-base" type="button" class="ghost-button">
+              Save API
+            </button>
+            <button
+              id="refresh-all"
+              type="button"
+              class="ghost-button"
+              data-auth-only="true"
+            >
+              Refresh all
+            </button>
+            <button
+              id="logout"
+              type="button"
+              class="ghost-button"
+              data-auth-only="true"
+            >
+              Logout
+            </button>
+          </div>
+
+          <div id="session-summary" class="session-summary">Not logged in</div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="panel auth-panel" data-guest-only="true">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Access</p>
+              <h2>Login</h2>
+            </div>
+          </div>
+
+          <form id="login-form" class="form-grid">
+            <label class="field">
+              <span>Username</span>
+              <input id="login-username" name="username" type="text" required />
+            </label>
+
+            <label class="field">
+              <span>Password</span>
+              <input
+                id="login-password"
+                name="password"
+                type="password"
+                required
+              />
+            </label>
+
+            <button class="primary-button" type="submit">Login</button>
+          </form>
+        </section>
+
+        <section class="summary-grid" data-auth-only="true">
+          <article class="summary-card panel">
+            <p class="summary-label">Residents</p>
+            <strong id="resident-count">0</strong>
+          </article>
+          <article class="summary-card panel">
+            <p class="summary-label">Vehicles</p>
+            <strong id="vehicle-count">0</strong>
+          </article>
+          <article class="summary-card panel">
+            <p class="summary-label">RFID cards</p>
+            <strong id="rfid-count">0</strong>
+          </article>
+        </section>
+
+        <section class="resource-grid" data-auth-only="true">
+          <article class="panel resource-panel">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker">POST + GET</p>
+                <h2>Residents</h2>
+              </div>
+              <button id="refresh-residents" type="button" class="ghost-button">
+                Reload
+              </button>
+            </div>
+
+            <form id="resident-form" class="form-grid" data-auth-only="true">
+              <label class="field">
+                <span>Full name</span>
+                <input name="full_name" type="text" maxlength="100" required />
+              </label>
+
+              <label class="field">
+                <span>Phone</span>
+                <input name="phone" type="text" maxlength="20" />
+              </label>
+
+              <label class="field">
+                <span>Apartment no</span>
+                <input
+                  name="apartment_no"
+                  type="text"
+                  maxlength="20"
+                  required
+                />
+              </label>
+
+              <label class="check-field">
+                <input name="is_active" type="checkbox" checked />
+                <span>Active resident</span>
+              </label>
+
+              <button class="primary-button" type="submit">
+                Create resident
+              </button>
+            </form>
+
+            <div id="edit-resident-modal" hidden class="modal-overlay">
+              <div class="modal-content panel">
+                <div class="modal-header">
+                  <h3>Edit Resident</h3>
+                  <button
+                    type="button"
+                    class="close-button"
+                    data-close-modal="edit-resident-modal"
+                  >
+                    ×
+                  </button>
+                </div>
+                <form id="edit-resident-form" class="form-grid">
+                  <input type="hidden" name="resident_id" />
+                  <label class="field">
+                    <span>Full name</span>
+                    <input
+                      name="full_name"
+                      type="text"
+                      maxlength="100"
+                      required
+                    />
+                  </label>
+                  <label class="field">
+                    <span>Phone</span>
+                    <input name="phone" type="text" maxlength="20" />
+                  </label>
+                  <label class="field">
+                    <span>Apartment no</span>
+                    <input
+                      name="apartment_no"
+                      type="text"
+                      maxlength="20"
+                      required
+                    />
+                  </label>
+                  <label class="check-field">
+                    <input name="is_active" type="checkbox" />
+                    <span>Active resident</span>
+                  </label>
+                  <button class="primary-button" type="submit">Update</button>
+                  <button
+                    type="button"
+                    class="ghost-button"
+                    data-close-modal="edit-resident-modal"
+                  >
+                    Cancel
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <div class="table-shell">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Apartment</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th>ID</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="resident-table"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel resource-panel">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker">POST + GET</p>
+                <h2>Vehicles</h2>
+              </div>
+              <button id="refresh-vehicles" type="button" class="ghost-button">
+                Reload
+              </button>
+            </div>
+
+            <form id="vehicle-form" class="form-grid" data-auth-only="true">
+              <label class="field">
+                <span>Resident</span>
+                <select name="resident_id" id="vehicle-resident-id">
+                  <option value="">No resident</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Vehicle type</span>
+                <select name="vehicle_type" required>
+                  <option value="motorbike">Motorbike</option>
+                  <option value="car">Car</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Plate number</span>
+                <input
+                  name="plate_number"
+                  type="text"
+                  maxlength="20"
+                  required
+                />
+              </label>
+
+              <button class="primary-button" type="submit">
+                Create vehicle
+              </button>
+            </form>
+
+            <div class="table-shell">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Plate</th>
+                    <th>Type</th>
+                    <th>Resident</th>
+                    <th>ID</th>
+                  </tr>
+                </thead>
+                <tbody id="vehicle-table"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel resource-panel">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker">POST + GET</p>
+                <h2>RFID cards</h2>
+              </div>
+              <button id="refresh-rfids" type="button" class="ghost-button">
+                Reload
+              </button>
+            </div>
+
+            <form id="rfid-form" class="form-grid" data-auth-only="true">
+              <label class="field">
+                <span>UID</span>
+                <input name="uid" type="text" maxlength="50" required />
+              </label>
+
+              <label class="field">
+                <span>Vehicle</span>
+                <select
+                  name="vehicle_id"
+                  id="rfid-vehicle-id"
+                  required
+                ></select>
+              </label>
+
+              <label class="field">
+                <span>Card type</span>
+                <select name="card_type" id="card-type" required>
+                  <option value="guest">Guest</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </label>
+
+              <label class="check-field">
+                <input name="is_active" type="checkbox" checked />
+                <span>Card active</span>
+              </label>
+
+              <div id="monthly-fields" class="monthly-fields">
+                <label class="field">
+                  <span>Monthly fee</span>
+                  <input name="monthly_fee" type="number" min="0" step="1000" />
+                </label>
+
+                <label class="field">
+                  <span>Start date</span>
+                  <input name="monthly_started_at" type="date" />
+                </label>
+
+                <label class="field">
+                  <span>Expire date</span>
+                  <input name="monthly_expires_at" type="date" />
+                </label>
+              </div>
+
+              <button class="primary-button" type="submit">
+                Create RFID card
+              </button>
+            </form>
+
+            <div class="table-shell">
+              <table>
+                <thead>
+                  <tr>
+                    <th>UID</th>
+                    <th>Vehicle</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>ID</th>
+                  </tr>
+                </thead>
+                <tbody id="rfid-table"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel activity-panel">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">System</p>
+              <h2>Activity</h2>
+            </div>
+          </div>
+          <div id="feedback" class="feedback info">Ready.</div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
